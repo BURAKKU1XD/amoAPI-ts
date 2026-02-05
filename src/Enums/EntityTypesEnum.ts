@@ -1,0 +1,63 @@
+/**
+ * Entity types enum for identifying different entity types in the API
+ */
+export enum EntityTypesEnum {
+  LEADS = 'leads',
+  LEAD = 'lead',
+  LEADS_PIPELINES = 'pipelines',
+  LEADS_LOSS_REASONS = 'loss_reasons',
+  LEADS_STATUSES = 'statuses',
+  SOURCES = 'sources',
+  CONTACTS = 'contacts',
+  CONTACT = 'contact',
+  CATALOGS = 'catalogs',
+  FILES = 'files',
+  COMPANIES = 'companies',
+  CONTACTS_AND_COMPANIES = 'contacts_and_companies',
+  COMPANY = 'company',
+  CUSTOMERS = 'customers',
+  CUSTOMERS_TRANSACTIONS = 'transactions',
+  EVENTS = 'events',
+  EVENTS_TYPES = 'events_types',
+  NOTES = 'notes',
+  TAGS = 'tags',
+  TASKS = 'tasks',
+  WEBHOOKS = 'webhooks',
+  UNSORTED = 'unsorted',
+  CATALOG_ELEMENTS = 'elements',
+  CATALOG_ELEMENTS_FULL = 'catalog_elements',
+  USER_ROLES = 'roles',
+  USERS = 'users',
+  CUSTOMERS_SEGMENTS = 'segments',
+  CUSTOMERS_STATUSES = 'statuses',
+  WIDGETS = 'widgets',
+  STATUS_RIGHTS = 'status_rights',
+  CATALOG_RIGHTS = 'catalog_rights',
+  CALLS = 'calls',
+  PRODUCTS = 'products',
+  SETTINGS = 'settings',
+  SHORT_LINKS = 'short_links',
+  LINKS = 'links',
+  TALKS = 'talks',
+  SUBSCRIPTIONS = 'subscriptions',
+  CURRENCIES = 'currencies',
+  CUSTOM_FIELDS = 'custom_fields',
+  CUSTOM_FIELD_GROUPS = 'custom_field_groups',
+  CHAT_TEMPLATES = 'chat_templates',
+  WEBSITE_BUTTONS = 'website_buttons',
+}
+
+/**
+ * Catalog type strings
+ */
+export enum CatalogTypeEnum {
+  DEFAULT = 'regular',
+  INVOICES = 'invoices',
+  PRODUCTS = 'products',
+  SUPPLIERS = 'suppliers',
+}
+
+/**
+ * Minimum catalog ID constant
+ */
+export const MIN_CATALOG_ID = 1000;

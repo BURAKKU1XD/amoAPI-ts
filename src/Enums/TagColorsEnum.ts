@@ -1,0 +1,35 @@
+/**
+ * Tag color codes
+ */
+export enum TagColorsEnum {
+  BRIGHT_GRAY = 'EBEBEB',
+  AMERICAN_SILVER = 'D0D0D0',
+  PINK_LACE = 'F2DDF7',
+  TROPICAL_VIOLET = 'D1A4DC',
+  TULIP = 'FF8F92',
+  LIGHT_RED = 'FFC8C8',
+  MEDIUM_SPRING_BUD = 'C7DB8C',
+  PALE_SPRING_BUD = 'DDEBB5',
+  VISTA_BLUE = '8699DA',
+  BABY_BLUE_EYES = 'AABDFF',
+  MUSTARD = 'FFCE5A',
+  FLAVESCENT = 'FFE193',
+  ETON_BLUE = '90CDB0',
+  AERO_BLUE = 'C6F4DE',
+  BLUE_BELL = 'A9A5D7',
+  PALE_LAVENDER = 'D8D5FF',
+  JORDY_BLUE = '86C0FC',
+  DARK_RASPBERRY = '832161',
+  PANSY_PURPLE = '6A0F49',
+  DEEP_GREEN_CYAN_TURQUOISE = '0C7C59',
+  YALE_BLUE = '10599D',
+  JAPANESE_CARMINE = '9D2B32',
+  LAPIS_LAZULI = '247BA0',
+}
+
+/**
+ * Get all tag colors
+ */
+export function getAllTagColors(): TagColorsEnum[] {
+  return Object.values(TagColorsEnum);
+}
