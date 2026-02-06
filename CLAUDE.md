@@ -4,106 +4,111 @@ This file provides guidance for Claude when working with this codebase.
 
 ## Project Overview
 
-This is a PHP SDK for the amoCRM CRM API (v4). It provides object-oriented access to amoCRM functionality with OAuth 2.0 authentication support.
+This is a TypeScript SDK for the amoCRM CRM API (v4). It provides object-oriented access to amoCRM functionality with OAuth 2.0 authentication support.
 
 ## Tech Stack
 
-- **Language:** PHP 7.1+ (supports up to 8.4)
-- **HTTP Client:** Guzzle 6.x/7.x
-- **Authentication:** OAuth 2.0 via `amocrm/oauth2-amocrm`
-- **Testing:** PHPUnit
-- **Code Style:** PSR-12 (enforced via PHP_CodeSniffer)
+- **Language:** TypeScript 5.3 (strict mode, target ES2020)
+- **Runtime:** Node.js >= 16.0.0
+- **HTTP Client:** Axios ^1.6
+- **Authentication:** OAuth 2.0 with JWT-based disposable tokens (`jsonwebtoken`)
+- **Testing:** Jest with ts-jest
+- **Code Style:** ESLint with `@typescript-eslint` plugin
 
 ## Common Commands
 
 ```bash
-composer test          # Run PHPUnit tests
-composer style:check   # Check PSR-12 code style
-composer style:fix     # Auto-fix code style issues
-composer serve         # Start dev server on localhost:8181
-composer git:prepush   # Run tests + style check (pre-push hook)
+npm run build            # Compile TypeScript to dist/
+npm run build:watch      # Watch mode compilation
+npm run test             # Run Jest tests
+npm run test:watch       # Watch mode tests
+npm run test:coverage    # Generate coverage reports
+npm run lint             # Check code style with ESLint
+npm run lint:fix         # Auto-fix style issues
 ```
 
 ## Project Structure
 
 ```
-src/AmoCRM/
+src/
 ├── Client/              # API client and HTTP request handling
-├── EntitiesServices/    # Service layer (one per entity type)
+├── Services/            # Service layer (one per entity type)
 ├── Models/              # Data models for API entities
 ├── Collections/         # Typed collections for models
 ├── Filters/             # Query filters for API requests
 ├── OAuth/               # OAuth 2.0 authentication
 ├── Exceptions/          # Custom exception classes
-├── Enum/                # Constants and enumerations
-├── Helpers/             # Utility classes
+├── Enums/               # Constants and enumerations
+├── Interfaces/          # TypeScript interfaces (Jsonable, Arrayable, etc.)
 ├── Support/             # Internal utilities (Str class)
-└── Contracts/           # Interfaces (Jsonable, Arrayable)
 
-examples/                # 50+ usage examples
-tests/Cases/             # PHPUnit test suite
+tests/Cases/             # Jest test suite
 ```
 
 ## Code Conventions
 
 ### Naming
-- **Namespace:** `AmoCRM\*` with PSR-4 autoloading
 - **Models:** Suffix with `Model` (e.g., `LeadModel`)
 - **Collections:** Suffix with `Collection` (e.g., `LeadsCollection`)
-- **Services:** Singular entity name (e.g., `Leads`, `Contacts`)
+- **Services:** Suffix with `Service` (e.g., `LeadsService`)
 - **Methods:** camelCase (e.g., `getOne()`, `addOne()`, `updateOne()`)
+- **Getters/Setters:** `get{Property}()` / `set{Property}()` pattern
 
 ### Architecture Patterns
-- **Service Layer:** All API operations go through service classes in `EntitiesServices/`
-- **Model-Collection Pattern:** Entities are models, lists are typed collections
-- **Trait-based Reuse:** Common behaviors extracted to traits (e.g., `LinkMethodsTrait`, `PageMethodsTrait`)
+- **Service Layer:** All API operations go through service classes in `Services/`
+- **Model-Collection Pattern:** Entities are models, lists are typed generic collections
+- **Lazy Service Instantiation:** Services are created on demand via client accessor methods
 - **Fluent Interface:** Method chaining supported throughout
 
 ### Model Implementation
 All models must:
 1. Extend `BaseApiModel`
 2. Implement `toArray()` for serialization
-3. Implement `toApi(?string $requestId = null)` for API payloads
+3. Implement `toApi(requestId?: string)` for API payloads
+4. Provide static `fromArray()` factory method
 
 ### Collection Implementation
 All collections must:
-1. Extend `BaseApiCollection`
-2. Implement `ArrayAccess`, `JsonSerializable`, `IteratorAggregate`
+1. Extend `BaseApiCollection<T>`
+2. Be iterable and JSON-serializable
 3. Provide static `fromArray()` factory method
+4. Support pagination via `getNextPageLink()` / `getPrevPageLink()`
 
 ### Service Methods
 Standard CRUD operations:
-- `getOne($id)` - Fetch single entity
-- `get($filter)` - Fetch collection with optional filter
-- `addOne($model)` - Create single entity
-- `add($collection)` - Batch create
-- `updateOne($model)` - Update single entity
-- `update($collection)` - Batch update
-- `syncOne($model)` - Upsert operation
+- `getOne(id)` - Fetch single entity
+- `get(filter)` - Fetch collection with optional filter
+- `addOne(model)` - Create single entity
+- `add(collection)` - Batch create
+- `updateOne(model)` - Update single entity
+- `update(collection)` - Batch update
+- `syncOne(model)` - Upsert operation
 
 ## Key Files
 
-- `src/AmoCRM/Client/AmoCRMApiClient.php` - Main client entry point
-- `src/AmoCRM/Client/AmoCRMApiRequest.php` - HTTP request wrapper
-- `src/AmoCRM/EntitiesServices/BaseEntity.php` - Abstract base for all services
-- `src/AmoCRM/Models/BaseApiModel.php` - Abstract base for all models
-- `src/AmoCRM/Collections/BaseApiCollection.php` - Abstract base for collections
-- `src/AmoCRM/Exceptions/AmoCRMApiException.php` - Base exception class
-- `examples/bootstrap.php` - Environment setup example
+- `src/Client/AmoCRMApiClient.ts` - Main client entry point
+- `src/Client/AmoCRMApiRequest.ts` - HTTP request wrapper
+- `src/Services/BaseEntity.ts` - Abstract base for all services
+- `src/Models/BaseApiModel.ts` - Abstract base for all models
+- `src/Collections/BaseApiCollection.ts` - Abstract base for collections
+- `src/Exceptions/AmoCRMApiException.ts` - Base exception class
+- `src/OAuth/AmoCRMOAuth.ts` - OAuth 2.0 client
 
 ## Error Handling
 
 Custom exception hierarchy:
 - `AmoCRMApiException` - Base exception with `getErrorCode()`, `getTitle()`, `getDescription()`
 - `AmoCRMoAuthApiException` - OAuth-specific errors
+- `AmoCRMApiConnectException` - Connection failures
 - `AmoCRMApiTooManyRequestsException` - Rate limiting (429)
 - `AmoCRMMissedTokenException` - Missing authentication
+- `DisposableTokenExpiredException` - Expired JWT disposable tokens
 
 ## Testing
 
-Tests are in `tests/Cases/`. Run with `composer test`.
+Tests are in `tests/Cases/`. Run with `npm run test`.
 
 When adding new features:
 1. Follow existing patterns in similar services/models
 2. Add corresponding tests
-3. Run `composer style:check` before committing
+3. Run `npm run lint` before committing
