@@ -2,12 +2,12 @@
 
 # amoCRM API Library
 
-[![Latest Version](https://img.shields.io/github/release/amocrm/amocrm-api-php)](https://github.com/amocrm/amocrm-api-php/releases)
-[![Build Status](https://app.travis-ci.com/amocrm/amocrm-api-php.svg?branch=master)](https://app.travis-ci.com/amocrm/amocrm-api-php)
-[![Total Downloads](https://img.shields.io/packagist/dt/amocrm/amocrm-api-library.svg)](https://packagist.org/packages/amocrm/amocrm-api-library)
+[![npm version](https://img.shields.io/npm/v/amocrm-api-library)](https://www.npmjs.com/package/amocrm-api-library)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/amocrm/amocrm-api-library/ci.yml?branch=master)](https://github.com/amocrm/amocrm-api-library/actions)
+[![Downloads](https://img.shields.io/npm/dt/amocrm-api-library)](https://www.npmjs.com/package/amocrm-api-library)
 
 В данном пакете представлен API клиент с поддержкой основных сущностей и авторизацией по протоколу OAuth 2.0 в amoCRM.
-Для работы библиотеки требуется PHP версии не ниже 7.1.
+Для работы библиотеки требуется Node.js версии не ниже 16.0.0.
 
 ## Оглавление
 - [Установка](#установка)
@@ -28,98 +28,108 @@
 
 ## Установка
 
-Установить библиотеку можно с помощью composer:
+Установить библиотеку можно с помощью npm:
 
 ```
-composer require amocrm/amocrm-api-library
+npm install amocrm-api-library
 ```
 
 ## Начало работы и авторизация
 
 Для начала использования вам необходимо создать объект библиотеки:
-```php
-$apiClient = new \AmoCRM\Client\AmoCRMApiClient($clientId, $clientSecret, $redirectUri);
+```typescript
+import { AmoCRMApiClient } from 'amocrm-api-library';
+
+const apiClient = new AmoCRMApiClient(clientId, clientSecret, redirectUri);
 ```
 
-Также предоставляется фабрика для создания объектов `\AmoCRM\Client\AmoCRMApiClientFactory`.
-Для ее использования вам нужно реализовать интерфейс `\AmoCRM\OAuth\OAuthConfigInterface` и `\AmoCRM\OAuth\OAuthServiceInterface`
+Также предоставляется фабрика для создания объектов `AmoCRMApiClientFactory`.
+Для ее использования вам нужно реализовать интерфейс `OAuthConfigInterface` и `OAuthServiceInterface`
 
-```php
-$apiClientFactory = new \AmoCRM\Client\AmoCRMApiClientFactory($oAuthConfig, $oAuthService);
-$apiClient = $apiClientFactory->make();
+```typescript
+import { AmoCRMApiClientFactory } from 'amocrm-api-library';
+
+const apiClientFactory = new AmoCRMApiClientFactory(oAuthConfig, oAuthService);
+const apiClient = apiClientFactory.make();
 ```
 
-При использовании фабрики вам не нужно устанавливать callback onAccessTokenRefresh, при обновлении токена будет вызван метод saveOAuthToken из $oAuthService (\AmoCRM\OAuth\OAuthServiceInterface).
+При использовании фабрики вам не нужно устанавливать callback onAccessTokenRefresh, при обновлении токена будет вызван метод saveOAuthToken из oAuthService (`OAuthServiceInterface`).
 
-Затем необходимо создать объект (`\League\OAuth2\Client\Token\AccessToken`) Access токена из вашего хранилища токенов и установить его в API клиент.
+Затем необходимо создать объект (`AccessToken`) Access токена из вашего хранилища токенов и установить его в API клиент.
 
 Также необходимо установить домен аккаунта amoCRM в виде СУБДОМЕН.amocrm.(ru/com).
 
 Вы можете установить функцию-callback на событие обновления Access токена, если хотите дополнительно обрабатывать новый токен (например сохранять его в хранилище токенов):
-```php
-$apiClient->setAccessToken($accessToken)
-        ->setAccountBaseDomain($accessToken->getValues()['baseDomain'])
-        ->onAccessTokenRefresh(
-            function (\League\OAuth2\Client\Token\AccessTokenInterface $accessToken, string $baseDomain) {
+```typescript
+import { AccessTokenInterface } from 'amocrm-api-library';
+
+apiClient.setAccessToken(accessToken)
+        .setAccountBaseDomain(accessToken.getValues()['baseDomain'])
+        .onAccessTokenRefresh(
+            async (accessToken: AccessTokenInterface, baseDomain: string) => {
                 saveToken(
-                    [
-                        'accessToken' => $accessToken->getToken(),
-                        'refreshToken' => $accessToken->getRefreshToken(),
-                        'expires' => $accessToken->getExpires(),
-                        'baseDomain' => $baseDomain,
-                    ]
+                    {
+                        accessToken: accessToken.getToken(),
+                        refreshToken: accessToken.getRefreshToken(),
+                        expires: accessToken.getExpires(),
+                        baseDomain: baseDomain,
+                    }
                 );
             });
 ```
 
 Отправить пользователя на страницу авторизации можно 2мя способами:
 1. Отрисовав кнопку на сайт:
-```php
-$apiClient->getOAuthClient()->getOAuthButton(
-            [
-                'title' => 'Установить интеграцию',
-                'compact' => true,
-                'class_name' => 'className',
-                'color' => 'default',
-                'error_callback' => 'handleOauthError',
-                'state' => $state,
-            ]
+```typescript
+apiClient.getOAuthClient().getOAuthButton(
+            {
+                title: 'Установить интеграцию',
+                compact: true,
+                class_name: 'className',
+                color: 'default',
+                error_callback: 'handleOauthError',
+                state: state,
+            }
         );
 ```
 
 2. Отправив пользователя на страницу авторизации
-```php
-$authorizationUrl = $apiClient->getOAuthClient()->getAuthorizeUrl([
-            'state' => $state,
-            'mode' => 'post_message', //post_message - редирект произойдет в открытом окне, popup - редирект произойдет в окне родителе
-        ]);
+```typescript
+const authorizationUrl = apiClient.getOAuthClient().getAuthorizeUrl({
+            state: state,
+            mode: 'post_message', //post_message - редирект произойдет в открытом окне, popup - редирект произойдет в окне родителе
+        });
 
-header('Location: ' . $authorizationUrl);
+// redirect to authorizationUrl
 ```
 
 Для получения Access Token можно использовать следующий код в обработчике, который будет находиться по адресу, указанному в redirect_uri
-```php
-$accessToken = $apiClient->getOAuthClient()->getAccessTokenByCode($_GET['code']);
+```typescript
+const accessToken = await apiClient.getOAuthClient().getAccessTokenByCode(code);
 ```
 
-Пример авторизации можно посмотреть в файле examples/get_token.php
+Пример авторизации можно посмотреть в файле examples/get_token.ts
 
 ### Авторизация с правами конкретного пользователя аккаунта
 Начиная с версии 1.4.0 появилась возможность авторизоваться с правами конкретного пользователя, если токен был выпущен администратором аккаунта.
 
-Для авторизации под пользователем аккаунта - необходимо задать ID пользователя у объекта типа ```\AmoCRM\Client\AmoCRMApiClient```. Метод вернет новый объект с установленным контекстом.
+Для авторизации под пользователем аккаунта - необходимо задать ID пользователя у объекта типа ```AmoCRMApiClient```. Метод вернет новый объект с установленным контекстом.
 
-```php
-$apiClient = new \AmoCRM\Client\AmoCRMApiClient($clientId, $clientSecret, $redirectUri);
-$apiClientWithContext = $apiClient->withContextUserId(123);
+```typescript
+import { AmoCRMApiClient } from 'amocrm-api-library';
+
+const apiClient = new AmoCRMApiClient(clientId, clientSecret, redirectUri);
+const apiClientWithContext = apiClient.withContextUserId(123);
 ```
 
 ### Установка кастомного User Agent
 Начиная с версии 1.5.0 появилась возможность указать свой User Agent для запросов с библиотекой.
 
-```php
-$apiClient = new \AmoCRM\Client\AmoCRMApiClient($clientId, $clientSecret, $redirectUri);
-$apiClient = $apiClient->setUserAgnet('App Name');
+```typescript
+import { AmoCRMApiClient } from 'amocrm-api-library';
+
+const apiClient = new AmoCRMApiClient(clientId, clientSecret, redirectUri);
+apiClient.setUserAgnet('App Name');
 ```
 
 ### Установка кастомного callback-обработчика ответа от сервера
@@ -129,17 +139,19 @@ $apiClient = $apiClient->setUserAgnet('App Name');
 
 Если нет необходимости в отработке стандартной логики обработки ответа, то callback должен возвращать true
 
-```php
-$apiClient = new \AmoCRM\Client\AmoCRMApiClient($clientId, $clientSecret, $redirectUri);
+```typescript
+import { AmoCRMApiClient } from 'amocrm-api-library';
 
-$this->apiClient
-     ->setCheckHttpStatusCallback(
-         function (ResponseInterface $response, $decodedBody) {
-             if ($response->getStatusCode() === 204) {
+const apiClient = new AmoCRMApiClient(clientId, clientSecret, redirectUri);
+
+apiClient
+     .setCheckHttpStatusCallback(
+         async (response: Response, decodedBody: any) => {
+             if (response.status === 204) {
                  return true;
              }
 
-             $this->logger->info('Response: ', $decodedBody);
+             this.logger.info('Response: ', decodedBody);
          }
      );
 ```
@@ -149,20 +161,24 @@ $this->apiClient
 Не так давно в amoCRM появилась возможность создавать долгоживущие токены. Их можно легко использовать с этой библиотекой.
 
 Для начала использования вам необходимо создать объект библиотеки:
-```php
-$apiClient = new \AmoCRM\Client\AmoCRMApiClient();
+```typescript
+import { AmoCRMApiClient } from 'amocrm-api-library';
+
+const apiClient = new AmoCRMApiClient();
 ```
 
-После этого нужно создать объект ```AmoCRM\Client\LongLivedAccessToken```, который будет использоваться с запросами в API.
+После этого нужно создать объект ```LongLivedAccessToken```, который будет использоваться с запросами в API.
 
-```php
-$longLivedAccessToken = new LongLivedAccessToken($accessToken);
+```typescript
+import { LongLivedAccessToken } from 'amocrm-api-library';
+
+const longLivedAccessToken = new LongLivedAccessToken(accessToken);
 ```
 
 Затем нужно установить токен и адресс аккаунта в объект библиотеки:
-```php
-$apiClient->setAccessToken($longLivedAccessToken)
-    ->setAccountBaseDomain('example.amocrm.ru');
+```typescript
+apiClient.setAccessToken(longLivedAccessToken)
+    .setAccountBaseDomain('example.amocrm.ru');
 ```
 
 После этих простых шагов, вы сможете делать запросы в amoCRM до тех пор, пока токен не истечет или его не отзовут.
@@ -179,19 +195,19 @@ $apiClient->setAccessToken($longLivedAccessToken)
 
 Также для работы с коллекциями имеются следующие методы:
 
-1. ```add(BaseApiModel $model): self``` - добавляет модель в конец коллекции.
-2. ```prepend(BaseApiModel $value): self``` - добавляет модель в начало коллекции.
-3. ```all(): array``` - возвращает массив моделей в коллекции.
-4. ```first(): ?BaseApiModel``` - получение первой модели в коллекции.
-5. ```last(): ?BaseApiModel``` - получение последней модели в коллекции.
-6. ```count(): int``` - получение кол-ва элементов в коллекции.
-7. ```isEmpty(): bool``` - проверяет, что коллекция не пустая.
-8. ```getBy($key, $value): ?BaseApiModel``` - получение модели по значению ключа.
-9. ```replaceBy($key, $value, BaseApiModel $replacement): void``` - замена модели по значению ключа.
-10. ```removeBy($key, $value): int``` - удаление моделей по значению ключа, возвращает количество удаленных моделей.
-11. ```removeFirstBy($key, $value): bool``` - удаление первой модели по значению ключа, возвращает true если модель была удалена.
-12. ```chunk(int $size): array``` - разделение коллекции на массив состоящий из коллекций определенной длины.
-13. ```pluck(string $column): array``` - получение массива значений моделей коллекции по названию свойства.
+1. ```add(model: BaseApiModel): this``` - добавляет модель в конец коллекции.
+2. ```prepend(model: BaseApiModel): this``` - добавляет модель в начало коллекции.
+3. ```all(): T[]``` - возвращает массив моделей в коллекции.
+4. ```first(): T | null``` - получение первой модели в коллекции.
+5. ```last(): T | null``` - получение последней модели в коллекции.
+6. ```count(): number``` - получение кол-ва элементов в коллекции.
+7. ```isEmpty(): boolean``` - проверяет, что коллекция не пустая.
+8. ```getBy(key: string, value: unknown): T | null``` - получение модели по значению ключа.
+9. ```replaceBy(key: string, value: unknown, replacement: T): void``` - замена модели по значению ключа.
+10. ```removeBy(key: string, value: unknown): number``` - удаление моделей по значению ключа, возвращает количество удаленных моделей.
+11. ```removeFirstBy(key: string, value: unknown): boolean``` - удаление первой модели по значению ключа, возвращает true если модель была удалена.
+12. ```chunk(size: number): this[]``` - разделение коллекции на массив состоящий из коллекций определенной длины.
+13. ```pluck(column: string): Record<number, unknown>``` - получение массива значений моделей коллекции по названию свойства.
 
 При работе с библиотекой необходимо не забывать о лимитах API amoCRM.
 Для оптимальной работы с данными лучше всего создавать/изменять за раз не более 50 сущностей в методах, где есть пакетная обработка.
@@ -201,8 +217,8 @@ $apiClient->setAccessToken($longLivedAccessToken)
 ## Поддерживаемые методы и сервисы
 
 Библиотека поддерживает большое количество методов API. Методы сгруппированы в объекты-сервисы. Получить объект сервиса можно вызвав необходимый метод у библиотеки, например:
-```php
-$leadsService = $apiClient->leads();
+```typescript
+const leadsService = apiClient.leads();
 ```
 
 В данный момент доступны следующие сервисы:
@@ -252,55 +268,55 @@ $leadsService = $apiClient->leads();
 #### Для большинства сервисов есть базовый набор методов:
 
 1. getOne - Получить 1 сущность
-    1. id (int|string) - id сущности
-    2. with (array) - массив параметров with, которые поддерживает модель сервиса
+    1. id (number | string) - id сущности
+    2. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
     3. Результатом выполнения будет модель сущности
-    ```php
-    getOne($id, array $with => []);
+    ```typescript
+    async getOne(id: number | string, withRelations?: string[]): Promise<TModel | null>;
     ```
 
 2. get Получить несколько сущностей:
     1. filter (BaseEntityFilter) - фильтр для сущности
-    2. with (array) - массив параметров with, которые поддерживает модель сервиса
+    2. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
     3. Результатом выполнения будет коллекция сущностей
-    ```php
-    get(?BaseEntityFilter $filter = null, array $with = []);
+    ```typescript
+    async get(filter?: BaseEntityFilter | null, withRelations?: string[]): Promise<TCollection | null>;
     ```
 
 3. addOne Создать одну сущность:
     1. model (BaseApiModel) - модель создаваемой сущности
     2. Результатом выполнения будет модель сущности
-    ```php
-    addOne(BaseApiModel $model);
+    ```typescript
+    async addOne(model: BaseApiModel): Promise<TModel>;
     ```
 
 4. add Создать сущности пакетно:
     1. collection (BaseApiCollection) - коллекция моделей создаваемой сущности
     2. Результатом выполнения будет коллекция моделей сущности
-    ```php
-    add(BaseApiCollection $collection);
+    ```typescript
+    async add(collection: BaseApiCollection): Promise<TCollection>;
     ```
 
 5. updateOne Обновить одну сущность:
     1. model (BaseApiModel) - модель создаваемой сущности
     2. Результатом выполнения будет модель сущности
-    ```php
-    updateOne(BaseApiModel $model);
+    ```typescript
+    async updateOne(model: BaseApiModel): Promise<TModel>;
     ```
 
 6. update Обновить сущности пакетно:
     1. collection (BaseApiCollection) - коллекция моделей создаваемой сущности
     2. Результатом выполнения будет коллекция моделей сущности
-    ```php
-    update(BaseApiCollection $collection);
+    ```typescript
+    async update(collection: BaseApiCollection): Promise<TCollection>;
     ```
 
 7. syncOne Синхронизировать одну модель с сервером:
     1. model (BaseApiModel) - коллекция моделей создаваемой сущности
-    2. with (array) - массив параметров with, которые поддерживает модель сервиса
+    2. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
     3. Результатом выполнения будет коллекция моделей сущности
-    ```php
-    syncOne(BaseApiModel $model, $with = []);
+    ```typescript
+    async syncOne(model: BaseApiModel, withRelations?: string[]): Promise<TModel>;
     ```
 
 Не все методы доступны во всех сервисах. В случае их вызова будет выброшены Exception.
@@ -311,99 +327,99 @@ $leadsService = $apiClient->leads();
 1. addComplex Создать сделки пакетно со связанным контакт и компанией через [комплексный метод](https://www.amocrm.ru/developers/content/crm_platform/leads-api#leads-complex-add) с поддержкой [контроля дублей](https://www.amocrm.ru/developers/content/crm_platform/duplication-control)
     1. collection (LeadsCollection) - коллекция моделей создаваемой сущности
     2. Результатом выполнения будет новая коллекция созданных сущностей
-    ```php
-    addComplex(LeadsCollection $collection);
+    ```typescript
+    async addComplex(collection: LeadsCollection): Promise<LeadsCollection>;
     ```
 2. addOneComplex Создать одну сделку со связанным контакт и компанией через [комплексный метод](https://www.amocrm.ru/developers/content/crm_platform/leads-api#leads-complex-add) с поддержкой [контроля дублей](https://www.amocrm.ru/developers/content/crm_platform/duplication-control)
     1. collection (LeadsCollection) - коллекция моделей создаваемой сущности
     2. Результатом выполнения будет новая модель созданной сделки
-    ```php
-    addOneComplex(LeadModel $model);
+    ```typescript
+    async addOneComplex(model: LeadModel): Promise<LeadModel>;
     ```
 
-Подробнее про использование метода комплексного создания смотрите в [примере](examples/leads_complex_actions.php)
+Подробнее про использование метода комплексного создания смотрите в [примере](examples/leads_complex_actions.ts)
 
 #### Методы доступные в сервисе ```getOAuthClient```:
 1. getAuthorizeUrl получение ссылки на авторизация
-    1. options (array)
+    1. options (object)
         1. state (string) состояние приложения
     2. Результатом выполнения будет строка со ссылкой на авторизация приложения
-    ```php
-    getAuthorizeUrl(array $options = []);
+    ```typescript
+    getAuthorizeUrl(options?: Record<string, string>): string;
     ```
 
 2. getAccessTokenByCode получение access токена по коду авторизации
     1. code (string) код авторизации
     2. Результатом выполнения будет объект (AccessTokenInterface)
-    ```php
-    getAccessTokenByCode(string $code);
+    ```typescript
+    async getAccessTokenByCode(code: string): Promise<AccessTokenInterface>;
     ```
 
 3. getAccessTokenByRefreshToken получение access токена по refresh токену
     1. accessToken (AccessTokenInterface) объект access токена
     2. Результатом выполнения будет объект (AccessTokenInterface)
-    ```php
-    getAccessTokenByRefreshToken(AccessTokenInterface $accessToken);
+    ```typescript
+    async getAccessTokenByRefreshToken(accessToken: AccessTokenInterface): Promise<AccessTokenInterface>;
     ```
 
 4. setBaseDomain установка базового домена, куда будут отправляться запросы необходимые для работы с токенами
     1. domain (string)
-    ```php
-    setBaseDomain(string $domain);
+    ```typescript
+    setBaseDomain(domain: string): void;
     ```
 
 5. setAccessTokenRefreshCallback установка callback, который будет вызван при обновлении access токена
-    1. function (callable)
-    ```php
-    setAccessTokenRefreshCallback(callable $function);
+    1. callback (function)
+    ```typescript
+    setAccessTokenRefreshCallback(callback: Function): void;
     ```
 
 6. getOAuthButton установка callback, который будет вызван при обновлении access токена
-    1. options (array)
+    1. options (object)
         1. state (string) состояние приложения
         2. color (string)
         3. title (string)
-        4. compact (bool)
+        4. compact (boolean)
         5. class_name (string)
         6. error_callback (string)
         7. mode (string)
     2. Результатом выполнения будет строка с HTML кодом кнопки авторизации
-    ```php
-    getOAuthButton(array $options = []);
+    ```typescript
+    getOAuthButton(options?: Record<string, any>): string;
     ```
 
 7. exchangeApiKey метод для обмена API ключа на код авторизации
     1. login - email пользователя, для которого обменивается API ключ
     2. apiKey - API ключ пользователя
     3. Код авторизации будет прислан на указанный в настройках приложения redirect_uri
-    ```php
-    exchangeApiKey(string $login, string $apiKey);
+    ```typescript
+    async exchangeApiKey(login: string, apiKey: string): Promise<void>;
     ```
 
 #### Методы связей доступны в сервисах ```leads```, ```contacts```, ```companies```, ```customers```:
 
 1. link Привязать сущность
     1. model (BaseApiModel) - модель главной сущности
-    2. links (LinksCollection|LinkModel) - коллекция или модель связи
+    2. links (LinksCollection | LinkModel) - коллекция или модель связи
     3. Результатом выполнения является коллекция связей (LinksCollection)
-    ```php
-    link(BaseApiModel $model, $linkedEntities);
+    ```typescript
+    async link(model: BaseApiModel, linkedEntities: LinksCollection | LinkModel): Promise<LinksCollection>;
     ```
 
 2. getLinks Получить связи сущности
     1. model (BaseApiModel) - модель главной сущности
     2. filter (LinksFilter) - фильтр для связей
     3. Результатом выполнения является коллекция связей (LinksCollection)
-    ```php
-    getLinks(BaseApiModel $model, LinksFilter $filter);
+    ```typescript
+    async getLinks(model: BaseApiModel, filter: LinksFilter): Promise<LinksCollection>;
     ```
 
 3. unlink Отвязать сущность
     1. model (BaseApiModel) - модель главной сущности
-    2. links (LinksCollection|LinkModel) - коллекция или модель связи
+    2. links (LinksCollection | LinkModel) - коллекция или модель связи
     3. Результатом выполнения является bool значение
-    ```php
-    unlink(BaseApiModel $model, $linkedEntities);
+    ```typescript
+    async unlink(model: BaseApiModel, linkedEntities: LinksCollection | LinkModel): Promise<boolean>;
     ```
 
 #### Методы удаления доступны в сервисах ```transactions```, ```lossReasons```, ```statuses```, ```pipelines```, ```customFields```, ```customFieldsGroups```, ```roles```, ```customersStatuses```, ```entityFiles```, ```files```:
@@ -411,201 +427,201 @@ $leadsService = $apiClient->leads();
 1. delete
     1. model (BaseApiModel) - модель сущности
     2. Результатом выполнения является bool значение
-    ```php
-    deleteOne(BaseApiModel $model);
+    ```typescript
+    async deleteOne(model: BaseApiModel): Promise<boolean>;
     ```
 
 2. deleteOne
     1. collection (BaseApiCollection) - коллекция моделей сущностей
     2. Результатом выполнения является bool значение
-    ```php
-    deleteOne(BaseApiModel $model);
+    ```typescript
+    async deleteOne(model: BaseApiModel): Promise<boolean>;
     ```
 
 #### Методы доступные в сервисе ```customers```:
 1. setMode Смена режима покупателей (периодические покупки или сегментация). Если покупатели выключены - то они будут включены.
     1. mode (string) - тип режима (periodicity или segments)
-    2. isEnabled (bool) - включен ли функционал покупателей, по-умолчанию - true
+    2. isEnabled (boolean) - включен ли функционал покупателей, по-умолчанию - true
     3. Результатом выполнения является строка названия включенного режима или null в случае отключения функционала
-    ```php
-    setMode(string $mode, bool $isEnabled = true);
+    ```typescript
+    async setMode(mode: string, isEnabled: boolean = true): Promise<string | null>;
     ```
 
 #### Методы доступные в сервисе ```customersBonusPoints```:
 1. earnPoints Начисляет бонусные баллы покупателю
     1. model (BonusPointsActionModel) - модель в которой Id покупателя и количество баллов для начисления
     2. Результатом выполнения является обновленное количество бонусных баллов покупателя или null в случае если произошла ошибка
-    ```php
-    earnPoints(BonusPointsActionModel $bonusPointsActionModel)
+    ```typescript
+    async earnPoints(bonusPointsActionModel: BonusPointsActionModel): Promise<number | null>;
     ```
 
 2. redeemPoints Списывает бонусные баллы покупателя
     1. model (BonusPointsActionModel) - модель в которой Id покупателя и количество баллов для списания
     2. Результатом выполнения является обновленное количество бонусных баллов покупателя или null в случае если произошла ошибка
-    ```php
-    redeemPoints(BonusPointsActionModel $bonusPointsActionModel)
+    ```typescript
+    async redeemPoints(bonusPointsActionModel: BonusPointsActionModel): Promise<number | null>;
     ```
 
 #### Методы доступные в сервисе ```notes```, ```entitySubscriptions```:
 1. getByParentId Получение данных по ID родительской сущности
     1. parentId - ID родительской сущности
     2. filter (BaseEntityFilter) - фильтр
-    3. with (array) - массив параметров with, которые поддерживает модель сервиса
-    ```php
-   getByParentId(int $parentId, ?BaseEntityFilter $filter = null, array $with = []);
+    3. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
+    ```typescript
+    async getByParentId(parentId: number, filter?: BaseEntityFilter | null, withRelations?: string[]): Promise<TCollection | null>;
     ```
 
 #### Методы доступные в сервисе ```account```
 1. getCurrent
-    1. with (array) - массив параметров with, которые поддерживает модель сервиса
+    1. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
     2. Результатом выполнения является модель AccountModel
-    ```php
-    getCurrent(array $with = []);
+    ```typescript
+    async getCurrent(withRelations?: string[]): Promise<AccountModel>;
     ```
 
 #### Методы доступные в сервисе ```unsorted```
 1. addOne Создать одну сущность:
     1. model (BaseApiModel) - модель создаваемой сущности
     2. Результатом выполнения будет модель сущности
-    ```php
-    addOne(BaseApiModel $model);
+    ```typescript
+    async addOne(model: BaseApiModel): Promise<TModel>;
     ```
 
 2. add Создать сущности пакетно:
     1. collection (BaseApiCollection) - коллекция моделей создаваемой сущности
     2. Результатом выполнения будет коллекция моделей сущности
-    ```php
-    add(BaseApiCollection $collection);
+    ```typescript
+    async add(collection: BaseApiCollection): Promise<TCollection>;
     ```
 
 3. link
     1. model (BaseApiModel) - модель неразобранного
-    2. body (array) - массив дополнительной информации для привязки
+    2. body (object) - массив дополнительной информации для привязки
     3. Результатом выполнения будет модель LinkUnsortedModel
-    ```php
-    link(BaseApiModel $unsortedModel, $body = []);
+    ```typescript
+    async link(unsortedModel: BaseApiModel, body?: Record<string, any>): Promise<LinkUnsortedModel>;
     ```
 
 4. accept
     1. model (BaseApiModel) - модель неразобранного
-    2. body (array) - массив дополнительной информации для принятия
+    2. body (object) - массив дополнительной информации для принятия
     3. Результатом выполнения будет модель AcceptUnsortedModel
-    ```php
-    accept(BaseApiModel $unsortedModel, $body = []);
+    ```typescript
+    async accept(unsortedModel: BaseApiModel, body?: Record<string, any>): Promise<AcceptUnsortedModel>;
     ```
 
 5. decline
     1. model (BaseApiModel) - модель неразобранного
-    2. body (array) - массив дополнительной информации для отклонения
+    2. body (object) - массив дополнительной информации для отклонения
     3. Результатом выполнения будет модель DeclineUnsortedModel
-    ```php
-    decline(BaseApiModel $unsortedModel, $body = []);
+    ```typescript
+    async decline(unsortedModel: BaseApiModel, body?: Record<string, any>): Promise<DeclineUnsortedModel>;
     ```
 
 6. summary
     1. filter (BaseEntityFilter) - фильтр для сущности
     2. Результатом выполнения будет модель UnsortedSummaryModel
-    ```php
-    summary(BaseEntityFilter $filter);
+    ```typescript
+    async summary(filter: BaseEntityFilter): Promise<UnsortedSummaryModel>;
     ```
 
 #### Методы доступные в сервисе ```webhooks```
 1. subscribe
     1. model (WebhookModel) - модель вебхука
     2. Результатом выполнения является модель WebhookModel
-    ```php
-    subscribe(WebhookModel $webhookModel);
+    ```typescript
+    async subscribe(webhookModel: WebhookModel): Promise<WebhookModel>;
     ```
 
 2. unsubscribe
     1. model (WebhookModel) - модель вебхука
     2. Результатом выполнения является bool значение
-    ```php
-    unsubscribe(WebhookModel $webhookModel);
+    ```typescript
+    async unsubscribe(webhookModel: WebhookModel): Promise<boolean>;
     ```
 
 #### Методы доступные в сервисе ```widgets```
 1. install
     1. model (WidgetModel) - модель виджета
     2. Результатом выполнения является модель WidgetModel
-    ```php
-    install(WidgetModel $widgetModel);
+    ```typescript
+    async install(widgetModel: WidgetModel): Promise<WidgetModel>;
     ```
 
 2. uninstall
     1. model (WidgetModel) - модель виджета
     2. Результатом выполнения является модель WidgetModel
-    ```php
-    uninstall(WidgetModel $widgetModel);
+    ```typescript
+    async uninstall(widgetModel: WidgetModel): Promise<WidgetModel>;
     ```
 
 #### Методы доступные в сервисе ```products```
 1. settings
     1. Результатом выполнения является модель ProductsSettingsModel
-    ```php
-    settings();
+    ```typescript
+    async settings(): Promise<ProductsSettingsModel>;
     ```
 
 2. updateSettings
     1. model (ProductsSettingsModel) - модель виджета
     2. Результатом выполнения является модель ProductsSettingsModel
-    ```php
-    updateSettings(ProductsSettingsModel $productsSettings);
+    ```typescript
+    async updateSettings(productsSettings: ProductsSettingsModel): Promise<ProductsSettingsModel>;
     ```
 
 #### Методы, доступные в сервисе ```talks```
 1. close
    1. model (TalkCloseActionModel) - модель для закрытия беседы
    2. Результатом выполнения - является закрытие беседы или запуск NPS-бота для последующего закрытия беседы
-    ```php
-    close(TalkCloseActionModel $closeAction)
+    ```typescript
+    async close(closeAction: TalkCloseActionModel): Promise<void>;
     ```
 
 #### Методы, доступные в сервисе ```files```
 1. uploadOne
    1. model (FileUploadModel) - модель файла для загрузки
    2. Результатом выполнения является модель FileModel
-    ```php
-    uploadOne(FileUploadModel $model);
+    ```typescript
+    async uploadOne(model: FileUploadModel): Promise<FileModel>;
     ```
 
 #### Методы, доступные в сервисе ```websiteButtons```
 1. getOne - получить 1 сущность:
-   1. id (int|string) - id источника
-   2. with (array) - массив параметров with, которые поддерживает модель сервиса
+   1. id (number | string) - id источника
+   2. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
    3. Результатом выполнения будет модель сущности ```WebsiteButtonModel```
-    ```php
-    getOne($id, array $with => []);
+    ```typescript
+    async getOne(id: number | string, withRelations?: string[]): Promise<WebsiteButtonModel | null>;
     ```
 2. get - получить несколько сущностей:
    1. filter (BaseEntityFilter) - фильтр для сущности
-   2. with (array) - массив параметров with, которые поддерживает модель сервиса
+   2. withRelations (string[]) - массив параметров with, которые поддерживает модель сервиса
    3. Результатом выполнения будет коллекция ```WebsiteButtonsCollection``` из сущностей ```WebsiteButtonModel```
-    ```php
-    get(?BaseEntityFilter $filter = null, array $with = []);
+    ```typescript
+    async get(filter?: BaseEntityFilter | null, withRelations?: string[]): Promise<WebsiteButtonsCollection | null>;
     ```
 3. createAsync - добавить источник типа "кнопка на сайт"
    1. model (WebsiteButtonCreateRequestModel) - модель со свойствами:
-      1. pipelineId (int) - id воронки
-      2. trustedWebsites (array) - список доверенных адресов на которых будет размещена "кнопка на сайт". Например amocrm.ru, https://amocrm.ru
-      3. isUsedInApp (true|false) - true, если кнопка встраивается в приложение, а не на сайт
+      1. pipelineId (number) - id воронки
+      2. trustedWebsites (string[]) - список доверенных адресов на которых будет размещена "кнопка на сайт". Например amocrm.ru, https://amocrm.ru
+      3. isUsedInApp (true | false) - true, если кнопка встраивается в приложение, а не на сайт
    2. Результатом выполнения будет модель ```WebsiteButtonCreateResponseModel```
-    ```php
-   createAsync(WebsiteButtonCreateRequestModel $model);
+    ```typescript
+    async createAsync(model: WebsiteButtonCreateRequestModel): Promise<WebsiteButtonCreateResponseModel>;
     ```
 4. updateAsync - добавить дополнительные доверенные адреса
    1. model (WebsiteButtonUpdateRequestModel) - модель со свойствами:
-      1. sourceId (int) - id источника
-      2. trustedWebsitesToAdd (array) - список доверенных адресов на которых будет размещена "кнопка на сайт"
+      1. sourceId (number) - id источника
+      2. trustedWebsitesToAdd (string[]) - список доверенных адресов на которых будет размещена "кнопка на сайт"
    2. Результатом выполнения будет модель ```WebsiteButtonModel```
-    ```php
-   updateAsync(WebsiteButtonUpdateRequestModel $model);
+    ```typescript
+    async updateAsync(model: WebsiteButtonUpdateRequestModel): Promise<WebsiteButtonModel>;
     ```
 5. addOnlineChatAsync - добавить канал связи "Онлайн-чат" к кнопке на сайт
    1. sourceId - id источника
    2. Результатом выполнения будет void значение
-    ```php
-   addOnlineChatAsync(int $sourceId);
+    ```typescript
+    async addOnlineChatAsync(sourceId: number): Promise<void>;
     ```
 
 
@@ -614,19 +630,19 @@ $leadsService = $apiClient->leads();
 Вызов методов библиотеки может выбрасывать ошибки типа ```AmoCRMApiException```.
 В данные момент доступны следующие типы ошибок, они все наследуют AmoCRMApiException:
 
-| Тип                                                  | Условия                                                                                                |
-|------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| AmoCRM\Exceptions\AmoCRMApiConnectExceptionException | Подключение к серверу не было выполнено                                                                |
-| AmoCRM\Exceptions\AmoCRMApiErrorResponseException    | Сервер вернул ошибку на выполняемый запрос                                                             |
-| AmoCRM\Exceptions\AmoCRMApiHttpClientException       | Произошла ошибка http клиента                                                                          |
-| AmoCRM\Exceptions\AmoCRMApiNoContentException        | Сервер вернул код 204 без результата, ничего страшного не произошло, просто нет данных на ваш запрос   |
-| AmoCRM\Exceptions\AmoCRMApiTooManyRedirectsException | Слишком много редиректов (в нормальном режиме не выкидывается)                                         |
-| AmoCRM\Exceptions\AmoCRMoAuthApiException            | Ошибка в oAuth клиенте                                                                                 |
-| AmoCRM\Exceptions\BadTypeException                   | Передан неверный тип данных                                                                            |
-| AmoCRM\Exceptions\InvalidArgumentException           | Передан неверный аргумент                                                                              |
-| AmoCRM\Exceptions\NotAvailableForActionException     | Метод не доступен для вызова                                                                           |
-| AmoCRM\Exceptions\AmoCRMApiPageNotAvailableException | Выбрасывается в случае запроса следующей или предыдущей страницы коллекции, когда страница отсутствует |
-| AmoCRM\Exceptions\AmoCRMMissedTokenException         | Не установлен Access Token для выполнения запроса                                                      |
+| Тип                                    | Условия                                                                                                |
+|----------------------------------------|--------------------------------------------------------------------------------------------------------|
+| AmoCRMApiConnectException              | Подключение к серверу не было выполнено                                                                |
+| AmoCRMApiErrorResponseException        | Сервер вернул ошибку на выполняемый запрос                                                             |
+| AmoCRMApiHttpClientException           | Произошла ошибка http клиента                                                                          |
+| AmoCRMApiNoContentException            | Сервер вернул код 204 без результата, ничего страшного не произошло, просто нет данных на ваш запрос   |
+| AmoCRMApiTooManyRedirectsException     | Слишком много редиректов (в нормальном режиме не выкидывается)                                         |
+| AmoCRMoAuthApiException                | Ошибка в oAuth клиенте                                                                                 |
+| BadTypeException                       | Передан неверный тип данных                                                                            |
+| InvalidArgumentException               | Передан неверный аргумент                                                                              |
+| NotAvailableForActionException         | Метод не доступен для вызова                                                                           |
+| AmoCRMApiPageNotAvailableException     | Выбрасывается в случае запроса следующей или предыдущей страницы коллекции, когда страница отсутствует |
+| AmoCRMMissedTokenException             | Не установлен Access Token для выполнения запроса                                                      |
 
 У выброшенных Exception есть следующие методы:
 1. ```getErrorCode()```
@@ -640,26 +656,26 @@ $leadsService = $apiClient->leads();
 
 В данный момент библиотека поддерживает фильтры для следующих сервисов:
 
-| Сервис                                                        | Фильтр                                      | Особенности                                                                                        | Поддерживает ли сортировку? |
-|---------------------------------------------------------------|---------------------------------------------|----------------------------------------------------------------------------------------------------|-----------------------------|
-| ```catalogElements```                                         | ```\AmoCRM\Filters\CatalogElementsFilter``` | Доступен в ограниченном виде, в будущих версиях будет расширен                                     | ❌                           |
-| ```companies```                                               | ```\AmoCRM\Filters\CompaniesFilter```       | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
-| ```contacts```                                                | ```\AmoCRM\Filters\ContactsFilter```        | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
-| ```customers```                                               | ```\AmoCRM\Filters\CustomersFilter```       | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
-| ```customFields```                                            | ```\AmoCRM\Filters\CustomFieldsFilter```    | Фильтр для метода получения дополнительных полей `\AmoCRM\EntitiesServices\CustomFields::get`      | ❌                           |
-| ```leads```                                                   | ```\AmoCRM\Filters\LeadsFilter```           | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
-| ```events```                                                  | ```\AmoCRM\Filters\EventsFilter```          | Фильтр для списка событий                                                                          | ❌                           |
-| ```leads```, ```contacts```, ```customers```, ```companies``` | ```\AmoCRM\Filters\LinksFilter```           | Фильтр для получения связей для метода `\AmoCRM\EntitiesServices\HasLinkMethodInterface::getLinks` | ❌                           |
-| ```notes```                                                   | ```\AmoCRM\Filters\NotesFilter```           | Фильтра для `\AmoCRM\EntitiesServices\EntityNotes::get`                                            | ✅                           |
-| ```tags```                                                    | ```\AmoCRM\Filters\TagsFilter```            | Фильтр для `\AmoCRM\EntitiesServices\EntityTags::get`                                              | ❌                           |
-| ```tasks```                                                   | ```\AmoCRM\Filters\TasksFilter```           | Фильтр для метода `\AmoCRM\EntitiesServices\Tasks::get`                                            | ✅                           |
-| ```unsorted```                                                | ```\AmoCRM\Filters\UnsortedFilter```        | Фильтр для метода `\AmoCRM\EntitiesServices\Unsorted::get`                                         | ✅                           |
-| ```unsorted```                                                | ```\AmoCRM\Filters\UnsortedSummaryFilter``` | Фильтр для метода `\AmoCRM\EntitiesServices\Unsorted::summary`                                     | ❌                           |
-| ```webhooks```                                                | ```\AmoCRM\Filters\WebhooksFilter```        | Фильтр для метода получения хуков                                                                  | ❌                           |
-| ```files```                                                   | ```\AmoCRM\Filters\FilesFilter```           | Фильтр для метода получения файлов `\AmoCRM\EntitiesServices\Files::get`                           | ❌                           |
-| ```sources```                                                 | ```\AmoCRM\Filters\SourcesFilter```         | Фильтр для метода получения источников `\AmoCRM\EntitiesServices\Sources::get`                     | ❌                           |
-| ```chatTemplates```                                           | ```\AmoCRM\Filters\Chats\TemplatesFilter``` | Фильтр для метода получения шаблонов чатов `\AmoCRM\EntitiesServices\Chats\Templates::get`         | ❌                           |
-| Сервисы, где необходима постраничная навигация                | ```\AmoCRM\Filters\PagesFilter```           | Фильтр, который подходит для любого сервиса, где есть постраничная навигация                       | ❌                           |
+| Сервис                                                        | Фильтр                        | Особенности                                                                                        | Поддерживает ли сортировку? |
+|---------------------------------------------------------------|-------------------------------|----------------------------------------------------------------------------------------------------|-----------------------------|
+| ```catalogElements```                                         | ```CatalogElementsFilter```   | Доступен в ограниченном виде, в будущих версиях будет расширен                                     | ❌                           |
+| ```companies```                                               | ```CompaniesFilter```         | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
+| ```contacts```                                                | ```ContactsFilter```          | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
+| ```customers```                                               | ```CustomersFilter```         | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
+| ```customFields```                                            | ```CustomFieldsFilter```      | Фильтр для метода получения дополнительных полей `CustomFieldsService.get()`                       | ❌                           |
+| ```leads```                                                   | ```LeadsFilter```             | Доступен только на аккаунтах, которые подключены к тестированию функционала фильтрации по API      | ✅                           |
+| ```events```                                                  | ```EventsFilter```            | Фильтр для списка событий                                                                          | ❌                           |
+| ```leads```, ```contacts```, ```customers```, ```companies``` | ```LinksFilter```             | Фильтр для получения связей для метода `HasLinkMethodInterface.getLinks()`                         | ❌                           |
+| ```notes```                                                   | ```NotesFilter```             | Фильтра для `EntityNotesService.get()`                                                             | ✅                           |
+| ```tags```                                                    | ```TagsFilter```              | Фильтр для `EntityTagsService.get()`                                                               | ❌                           |
+| ```tasks```                                                   | ```TasksFilter```             | Фильтр для метода `TasksService.get()`                                                             | ✅                           |
+| ```unsorted```                                                | ```UnsortedFilter```          | Фильтр для метода `UnsortedService.get()`                                                          | ✅                           |
+| ```unsorted```                                                | ```UnsortedSummaryFilter```   | Фильтр для метода `UnsortedService.summary()`                                                      | ❌                           |
+| ```webhooks```                                                | ```WebhooksFilter```          | Фильтр для метода получения хуков                                                                  | ❌                           |
+| ```files```                                                   | ```FilesFilter```             | Фильтр для метода получения файлов `FilesService.get()`                                            | ❌                           |
+| ```sources```                                                 | ```SourcesFilter```           | Фильтр для метода получения источников `SourcesService.get()`                                      | ❌                           |
+| ```chatTemplates```                                           | ```TemplatesFilter```         | Фильтр для метода получения шаблонов чатов `TemplatesService.get()`                                | ❌                           |
+| Сервисы, где необходима постраничная навигация                | ```PagesFilter```             | Фильтр, который подходит для любого сервиса, где есть постраничная навигация                       | ❌                           |
 
 
 ## Работа с дополнительными полями сущностей
@@ -700,11 +716,11 @@ $leadsService = $apiClient->leads();
 
 #### Для разных типов полей мы уже подготовили разные модели и коллекции:
 
-Namespace, в котором находятся модели значения - ```\AmoCRM\Models\CustomFieldsValues\ValueModels```
+Value models находятся в модуле значений.
 
-Namespace, в котором находятся коллекции моделей значения - ```\AmoCRM\Models\CustomFieldsValues\ValueCollections```
+Коллекции моделей значений находятся в модуле коллекций значений.
 
-Namespace, в котором находятся модели дополнительных полей - ```\AmoCRM\Models\CustomFieldsValues```
+Модели дополнительных полей находятся в модуле CustomFieldsValues.
 
 | Тип поля                 | Модель значения                    | Коллекция моделей значений              | Модель доп поля                     | Контакт | Сделка | Компания | Покупатель |         Каталог          | Сегмент |
 |--------------------------|------------------------------------|-----------------------------------------|-------------------------------------|:-------:|:------:|:--------:|:----------:|:------------------------:|:-------:|
@@ -735,50 +751,65 @@ Namespace, в котором находятся модели дополните�
 | Поставщик                | SupplierCustomFieldModel           | SupplierCustomFieldValueCollection      | SupplierCustomFieldValuesModel      |    ❌    |   ❌    |    ❌     |     ❌      | ✅ (только счета-покупки) |    ❌    |
 
 Пример кода, как создать коллекцию значения полей сущности:
-```php
+```typescript
+import {
+    LeadModel,
+    CustomFieldsValuesCollection,
+    TextCustomFieldValuesModel,
+    TextCustomFieldValueCollection,
+    TextCustomFieldValueModel,
+} from 'amocrm-api-library';
+
 //Создадим модель сущности
-$lead = new LeadModel();
-$lead->setId(1);
+const lead = new LeadModel();
+lead.setId(1);
 //Создадим коллекцию полей сущности
-$leadCustomFieldsValues = new CustomFieldsValuesCollection();
+const leadCustomFieldsValues = new CustomFieldsValuesCollection();
 //Создадим модель значений поля типа текст
-$textCustomFieldValuesModel = new TextCustomFieldValuesModel();
+const textCustomFieldValuesModel = new TextCustomFieldValuesModel();
 //Укажем ID поля
-$textCustomFieldValuesModel->setFieldId(123);
+textCustomFieldValuesModel.setFieldId(123);
 //Добавим значения
-$textCustomFieldValuesModel->setValues(
+textCustomFieldValuesModel.setValues(
     (new TextCustomFieldValueCollection())
-        ->add((new TextCustomFieldValueModel())->setValue('Текст'))
+        .add((new TextCustomFieldValueModel()).setValue('Текст'))
 );
 //Добавим значение в коллекцию полей сущности
-$leadCustomFieldsValues->add($textCustomFieldValuesModel);
+leadCustomFieldsValues.add(textCustomFieldValuesModel);
 //Установим в сущности эти поля
-$lead->setCustomFieldsValues($leadCustomFieldsValues);
+lead.setCustomFieldsValues(leadCustomFieldsValues);
 ```
 
-Чтобы удалить значения поля доступен специальный объект ```\AmoCRM\Models\CustomFieldsValues\ValueCollections\NullCustomFieldValueCollection```.
+Чтобы удалить значения поля доступен специальный объект ```NullCustomFieldValueCollection```.
 
 Передав этот объект, вы зануляете значение поля.
 
 Пример:
-```php
+```typescript
+import {
+    LeadModel,
+    CustomFieldsValuesCollection,
+    TextCustomFieldValuesModel,
+    NullCustomFieldValueCollection,
+} from 'amocrm-api-library';
+
 //Создадим модель сущности
-$lead = new LeadModel();
-$lead->setId(1);
+const lead = new LeadModel();
+lead.setId(1);
 //Создадим коллекцию полей сущности
-$leadCustomFieldsValues = new CustomFieldsValuesCollection();
+const leadCustomFieldsValues = new CustomFieldsValuesCollection();
 //Создадим модель значений поля типа текст
-$textCustomFieldValuesModel = new TextCustomFieldValuesModel();
+const textCustomFieldValuesModel = new TextCustomFieldValuesModel();
 //Укажем ID поля
-$textCustomFieldValuesModel->setFieldId(123);
+textCustomFieldValuesModel.setFieldId(123);
 //Обнулим значения
-$textCustomFieldValuesModel->setValues(
+textCustomFieldValuesModel.setValues(
     (new NullCustomFieldValueCollection())
 );
 //Добавим значение в коллекцию полей сущности
-$leadCustomFieldsValues->add($textCustomFieldValuesModel);
+leadCustomFieldsValues.add(textCustomFieldValuesModel);
 //Установим сущности эти поля
-$lead->setCustomFieldsValues($leadCustomFieldsValues);
+lead.setCustomFieldsValues(leadCustomFieldsValues);
 ```
 
 ## Работа с тегами сущностей
@@ -787,10 +818,10 @@ $lead->setCustomFieldsValues($leadCustomFieldsValues);
 При создании данного сервиса, вы указываете тип сущности, с тегами которой вы будете работать.
 
 В данный момент доступны:
-1. EntityTypesInterface::LEADS,
-2. EntityTypesInterface::CONTACTS,
-3. EntityTypesInterface::COMPANIES,
-4. EntityTypesInterface::CUSTOMERS,
+1. EntityTypes.LEADS,
+2. EntityTypes.CONTACTS,
+3. EntityTypes.COMPANIES,
+4. EntityTypes.CUSTOMERS,
 
 Для работы с тегами конкретной сущности, нужно взаимодействовать с конкретной моделью сущности.
 С помощью методов ```getTags``` и ```setTags``` вы можете получить коллекцию тегов сущности или установить её.
@@ -798,50 +829,63 @@ $lead->setCustomFieldsValues($leadCustomFieldsValues);
 Для изменения тегов вам необходимо передавать всю коллекцию тегов, иначе теги могут быть потеряны.
 
 Пример добавления/изменения тегов у сущности:
-```php
+```typescript
+import {
+    LeadModel,
+    TagsCollection,
+    TagModel,
+} from 'amocrm-api-library';
+
 //Создадим модель сущности
-$lead = new LeadModel();
-$lead->setId(1);
+const lead = new LeadModel();
+lead.setId(1);
 //Создадим коллекцию тегов с тегами и установим их в сущности
-$lead->setTags((new TagsCollection())
-    ->add(
+lead.setTags((new TagsCollection())
+    .add(
         (new TagModel())
-            ->setName('тег')
-    )->add(
+            .setName('тег')
+    ).add(
         (new TagModel())
-            ->setId(123123)
+            .setId(123123)
     )
 );
 ```
 
 или
 
-```php
+```typescript
+import {
+    LeadModel,
+    TagsCollection,
+} from 'amocrm-api-library';
+
 //Создадим модель сущности
-$lead = new LeadModel();
-$lead->setId(1);
+const lead = new LeadModel();
+lead.setId(1);
 //Создадим коллекцию тегов с тегами и установим их в сущности
-$lead->setTags(
-    TagsCollection::fromArray([
-        [
-            'name' => 'тег',
-        ],
-        [
-            'id' => 123,
-        ],
+lead.setTags(
+    TagsCollection.fromArray([
+        {
+            name: 'тег',
+        },
+        {
+            id: 123,
+        },
     ])
 );
 ```
 
-Для удаления тегов в setTags можно передать в ```setTags``` специальный объект ```\AmoCRM\Collections\NullTagsCollection```.
+Для удаления тегов в setTags можно передать в ```setTags``` специальный объект ```NullTagsCollection```.
 
 Пример удаления тегов у сущности:
-```php
+```typescript
+import { LeadModel, NullTagsCollection } from 'amocrm-api-library';
+
 //Создадим модель сущности
-$lead = new LeadModel();
-$lead->setId(1);
+const lead = new LeadModel();
+lead.setId(1);
 //Удалим теги
-$lead->setTags((new NullTagsCollection()));
+lead.setTags((new NullTagsCollection()));
 ```
 
 ## Особенности работы с источниками
@@ -869,7 +913,7 @@ $lead->setTags((new NullTagsCollection()));
 ]
 
 ```
-Чтобы правильно сформировать поле `services` можно воспользоваться моделью ```\AmoCRM\Collections\Sources\SourceServicesCollection```
+Чтобы правильно сформировать поле `services` можно воспользоваться моделью ```SourceServicesCollection```
 
 ### Источник по-умолчанию
 
@@ -912,40 +956,42 @@ $lead->setTags((new NullTagsCollection()));
 
 ## Константы
 
-Основные константы находятся в интерфейсе ```\AmoCRM\Helpers\EntityTypesInterface```.
+Основные константы находятся в интерфейсе ```EntityTypes```.
 
 Также доступны константы в следующих классах/интерфейсах:
-1. ```\AmoCRM\OAuth\AmoCRMOAuth::BUTTON_COLORS``` - доступные цвета для кнопки на сайт
-2. ```\AmoCRM\Models\Unsorted\BaseUnsortedModel``` - константы для кодов категорий неразобранного
-3. ```\AmoCRM\Models\CustomFields\BirthdayCustomFieldModel``` - константы для свойства remind у поля День Рождения
-4. ```\AmoCRM\Models\Interfaces\CallInterface``` - константы статусов звонков
-5. ```\AmoCRM\EntitiesServices\Interfaces\HasParentEntity``` - константы для ключей в запросах методов, у которых есть родительский сущность (в данный момент только notes)
-6. ```\AmoCRM\Models\CustomFieldsValues\ValueModels\ItemsCustomFieldValueModel``` - константы для ключей значения поля Items
-7. ```\AmoCRM\Models\Rights\RightModel``` - константы, связанные с правами
-8. ```\AmoCRM\Models\AccountModel``` - константы для аргумента with для сервиса ```account```
-9. ```\AmoCRM\Models\TaskModel``` - константы для дефолтных типов задач
-10. ```\AmoCRM\Models\NoteType\TargetingNote``` - константы поддерживаемых внешних сервисов для примечаний о таргетинге (добавляют DP)
-11. ```\AmoCRM\Models\RoleModel``` - константы для аргумента with для сервиса ```roles```
-12. ```\AmoCRM\Models\Factories\NoteFactory``` - константы типов примечаний
-13. ```\AmoCRM\Models\NoteType\MessageCashierNote``` - статусы примечания "Сообщение кассиру"
-14. ```\AmoCRM\Models\LeadModel``` - константы для аргумента with для сервиса ```leads```
-15. ```\AmoCRM\Filters\Interfaces\HasOrderInterface``` - константы для сортировки
-16. ```\AmoCRM\Models\EventModel``` - константы для аргумента with для сервиса ```events```
-17. ```\AmoCRM\Models\CustomFields\CustomFieldModel``` - константы типов полей
-18. ```\AmoCRM\Models\Customers\CustomerModel``` - константы для аргумента with для сервиса ```customers```
-19. ```\AmoCRM\Models\ContactModel``` - константы для аргумента with для сервиса ```contacts```
-20. ```\AmoCRM\Models\CompanyModel``` - константы для аргумента with для сервиса ```companies```
-21. ```\AmoCRM\Models\CatalogElementModel``` - константы для аргумента with для сервиса ```catalogElements```
-22. ```\AmoCRM\Enum\InvoicesCustomFieldsEnums``` - константы для работы с полями каталога счетов (с версии 0.12 константы статусов переехали в \AmoCRM\Enum\Invoices\BillStatusEnumCode)
-23. ```\AmoCRM\Enum\Chats\Templates\Buttons\ButtonsEnums``` - типы кнопок шаблонов чатов
-24. ```\AmoCRM\Enum\Sources\SourceServiceTypeEnum``` - типы сервисов для источников
-25. ```\AmoCRM\Enum\Tags\TagColorsEnum``` - возможные цвета для тегов
-26. ```\AmoCRM\Enum\Invoices\BillStatusEnumCode``` - предустановленные статусы для Счетов/Покупок
-27. ```\AmoCRM\Enum\SuppliersCustomFieldsEnums``` - константы для свойств поля поставщик
+1. ```BUTTON_COLORS``` - доступные цвета для кнопки на сайт
+2. ```BaseUnsortedModel``` - константы для кодов категорий неразобранного
+3. ```BirthdayCustomFieldModel``` - константы для свойства remind у поля День Рождения
+4. ```CallInterface``` - константы статусов звонков
+5. ```HasParentEntity``` - константы для ключей в запросах методов, у которых есть родительский сущность (в данный момент только notes)
+6. ```ItemsCustomFieldValueModel``` - константы для ключей значения поля Items
+7. ```RightModel``` - константы, связанные с правами
+8. ```AccountModel``` - константы для аргумента with для сервиса ```account```
+9. ```TaskModel``` - константы для дефолтных типов задач
+10. ```TargetingNote``` - константы поддерживаемых внешних сервисов для примечаний о таргетинге (добавляют DP)
+11. ```RoleModel``` - константы для аргумента with для сервиса ```roles```
+12. ```NoteFactory``` - константы типов примечаний
+13. ```MessageCashierNote``` - статусы примечания "Сообщение кассиру"
+14. ```LeadModel``` - константы для аргумента with для сервиса ```leads```
+15. ```HasOrderInterface``` - константы для сортировки
+16. ```EventModel``` - константы для аргумента with для сервиса ```events```
+17. ```CustomFieldModel``` - константы типов полей
+18. ```CustomerModel``` - константы для аргумента with для сервиса ```customers```
+19. ```ContactModel``` - константы для аргумента with для сервиса ```contacts```
+20. ```CompanyModel``` - константы для аргумента with для сервиса ```companies```
+21. ```CatalogElementModel``` - константы для аргумента with для сервиса ```catalogElements```
+22. ```InvoicesCustomFieldsEnums``` - константы для работы с полями каталога счетов (с версии 0.12 константы статусов переехали в ```BillStatusEnumCode```)
+23. ```ButtonsEnums``` - типы кнопок шаблонов чатов
+24. ```SourceServiceTypeEnum``` - типы сервисов для источников
+25. ```TagColorsEnum``` - возможные цвета для тегов
+26. ```BillStatusEnumCode``` - предустановленные статусы для Счетов/Покупок
+27. ```SuppliersCustomFieldsEnums``` - константы для свойств поля поставщик
 
 ## Работа в случае смены субдомена аккаунта
 
-```php
+```typescript
+import { AmoCRMApiClient, AccountDomainModel } from 'amocrm-api-library';
+
 /**
  * Получим модель с информацией о домене аккаунта по access_token
  * Подробнее: @see AccountDomainModel
@@ -954,22 +1000,30 @@ $lead->setTags((new NullTagsCollection()));
  * С Authorization: Bearer {access_token}
  * curl 'https://www.amocrm.ru/oauth2/account/subdomain' -H 'Authorization: Bearer {access_token}'
  *
- * @example examples/get_account_subdomain.php
+ * @example examples/get_account_subdomain.ts
  */
-use AmoCRM\Models\AccountDomainModel;$accountDomain = $apiClient->getOAuthClient()
-        ->getAccountDomain($accessToken);
+const accountDomain: AccountDomainModel = await apiClient.getOAuthClient()
+        .getAccountDomain(accessToken);
 
 // Возьмём из полученной модели текущий subdomain аккаунта и засетим наш апи клиент
-$apiClient->setAccountBaseDomain($accountDomain->getSubdomain());
+apiClient.setAccountBaseDomain(accountDomain.getSubdomain());
 // ... дальше продолжаем работу с апи клиентом
 ```
 
 ## Одноразовые токены интеграций, расшифровка
 
-```php
+```typescript
+import {
+    AmoCRMApiClient,
+    DisposableTokenModel,
+    DisposableTokenExpiredException,
+    DisposableTokenInvalidDestinationException,
+    DisposableTokenVerificationFailedException,
+} from 'amocrm-api-library';
+
 // Как пример, получим заголовки с реквеста
 // И получим нужный нам X-Auth-Token
-use AmoCRM\Models\DisposableTokenModel;$token = $_SERVER['HTTP_X_AUTH_TOKEN'];
+const token = req.headers['x-auth-token'];
 
 try {
     /**
@@ -984,29 +1038,40 @@ try {
      * Расшифруем пришедший токен и получим модель с информацией
      * Подробнее: @see DisposableTokenModel
      */
-    $disposableTokenModel = $apiClient->getOAuthClient()
-        ->parseDisposableToken($token);
+    const disposableTokenModel = await apiClient.getOAuthClient()
+        .parseDisposableToken(token);
 
-    var_dump($disposableTokenModel->toArray());
-} catch (DisposableTokenExpiredException $e) {
-    // Время жизни токена истекло
-    printError($e);
-    die;
-} catch (DisposableTokenInvalidDestinationException $e) {
-    // Не прошёл проверку на адресата токена
-    printError($e);
-    die;
-} catch (DisposableTokenVerificationFailedException $e) {
-    // Токен не прошел проверку подписи
-    printError($e);
-    die;
+    console.log(disposableTokenModel.toArray());
+} catch (e) {
+    if (e instanceof DisposableTokenExpiredException) {
+        // Время жизни токена истекло
+        printError(e);
+        process.exit(1);
+    } else if (e instanceof DisposableTokenInvalidDestinationException) {
+        // Не прошёл проверку на адресата токена
+        printError(e);
+        process.exit(1);
+    } else if (e instanceof DisposableTokenVerificationFailedException) {
+        // Токен не прошел проверку подписи
+        printError(e);
+        process.exit(1);
+    }
 }
 ```
 Также вы можете распарсить и модель одноразового токена для Salesbot/Marketingbot.
 Для этого необходимо сделать вызов метода `parseBotDisposableToken`:
 
-```php
-use AmoCRM\Models\BotDisposableTokenModel;$token = 'XXX';
+```typescript
+import {
+    AmoCRMApiClient,
+    BotDisposableTokenModel,
+    DisposableTokenExpiredException,
+    DisposableTokenInvalidDestinationException,
+    DisposableTokenVerificationFailedException,
+} from 'amocrm-api-library';
+
+const token = 'XXX';
+
 try {
     /**
      * Одноразовый токен для ботов, его вы можете получить, сделав вызов widget_request в виджете в боте
@@ -1019,53 +1084,65 @@ try {
      * Расшифруем пришедший токен и получим модель с информацией
      * Подробнее: @see BotDisposableTokenModel
      */
-    $botDisposableTokenModel = $apiClient->getOAuthClient()
-        ->parseBotDisposableToken($token);
+    const botDisposableTokenModel = await apiClient.getOAuthClient()
+        .parseBotDisposableToken(token);
 
-    var_dump($botDisposableTokenModel->toArray());
-} catch (DisposableTokenExpiredException $e) {
-    // Время жизни токена истекло
-    printError($e);
-    die;
-} catch (DisposableTokenInvalidDestinationException $e) {
-    // Не прошёл проверку на адресата токена
-    printError($e);
-    die;
-} catch (DisposableTokenVerificationFailedException $e) {
-    // Токен не прошел проверку подписи
-    printError($e);
-    die;
+    console.log(botDisposableTokenModel.toArray());
+} catch (e) {
+    if (e instanceof DisposableTokenExpiredException) {
+        // Время жизни токена истекло
+        printError(e);
+        process.exit(1);
+    } else if (e instanceof DisposableTokenInvalidDestinationException) {
+        // Не прошёл проверку на адресата токена
+        printError(e);
+        process.exit(1);
+    } else if (e instanceof DisposableTokenVerificationFailedException) {
+        // Токен не прошел проверку подписи
+        printError(e);
+        process.exit(1);
+    }
 }
 ```
 
 ## Работа с валютами
 
-```php
-/** @var AmoCRMApiClient $apiClient */
+```typescript
+import {
+    AmoCRMApiClient,
+    AmoCRMApiException,
+    CurrenciesFilter,
+} from 'amocrm-api-library';
 
-# Получим сервис для работы с валютами
-$service = $apiClient->currencies();
+/** apiClient: AmoCRMApiClient */
 
-# Получение списка валют
+// Получим сервис для работы с валютами
+const service = apiClient.currencies();
+
+// Получение списка валют
 try {
-    $collection = $service->get();
-    var_dump($collection);
-} catch (AmoCRMApiException $e) {
-    printError($e);
-    die;
+    const collection = await service.get();
+    console.log(collection);
+} catch (e) {
+    if (e instanceof AmoCRMApiException) {
+        printError(e);
+        process.exit(1);
+    }
 }
 
-# Получение списка валют с фильтром
-$filter = new CurrenciesFilter();
-$filter->setLimit(50);
-$filter->setPage(2);
+// Получение списка валют с фильтром
+const filter = new CurrenciesFilter();
+filter.setLimit(50);
+filter.setPage(2);
 
 try {
-    $collection = $service->get($filter);
-    var_dump($collection);
-} catch (AmoCRMApiException $e) {
-    printError($e);
-    die;
+    const collection = await service.get(filter);
+    console.log(collection);
+} catch (e) {
+    if (e instanceof AmoCRMApiException) {
+        printError(e);
+        process.exit(1);
+    }
 }
 ```
 
@@ -1077,14 +1154,14 @@ try {
 ```dotenv
 CLIENT_ID="UUID интеграци"
 CLIENT_SECRET="Секретный ключ интеграции"
-CLIENT_REDIRECT_URI="https://example.com/examples/get_token.php (Важно обратить внимание, что он должен содержать в себе точно тот адрес, который был указан при создании интеграции)"
+CLIENT_REDIRECT_URI="https://example.com/examples/get_token.ts (Важно обратить внимание, что он должен содержать в себе точно тот адрес, который был указан при создании интеграции)"
 ```
 
-Затем вы можете поднять локальный сервер командой ```composer serve```. После конфигурации необходимо перейти в браузере на страницу
-```http://localhost:8181/examples/get_token.php``` для получения Access Token.
+Затем вы можете запустить примеры командой ```npx ts-node```. Например, для получения Access Token выполните:
+```npx ts-node examples/get_token.ts```
 Для получения доступа к вашему локальному серверу извне можно использовать сервис ngrok.io.
 
-После авторизации вы можете проверить работу примеров, обращаясь к ним из браузера. Стоит отметить, что для корректной работы примеров
+После авторизации вы можете проверить работу примеров, запуская их через ```npx ts-node```. Стоит отметить, что для корректной работы примеров
 необходимо проверить ID сущностей в них.
 
 ## Работа с Issues
